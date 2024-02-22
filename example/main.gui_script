@@ -1,0 +1,90 @@
+--------------------------------------------------------------------------------
+-- License
+--------------------------------------------------------------------------------
+
+-- Copyright (c) 2024 Klayton Kowalski
+
+-- This software is provided 'as-is', without any express or implied warranty.
+-- In no event will the authors be held liable for any damages arising from the use of this software.
+
+-- Permission is granted to anyone to use this software for any purpose,
+-- including commercial applications, and to alter it and redistribute it freely,
+-- subject to the following restrictions:
+
+-- 1. The origin of this software must not be misrepresented; you must not claim that you wrote the original software.
+--    If you use this software in a product, an acknowledgment in the product documentation would be appreciated but is not required.
+
+-- 2. Altered source versions must be plainly marked as such, and must not be misrepresented as being the original software.
+
+-- 3. This notice may not be removed or altered from any source distribution.
+
+--------------------------------------------------------------------------------
+-- Information
+--------------------------------------------------------------------------------
+
+-- GitHub: https://github.com/klaytonkowalski/library-defold-cockpit
+
+--------------------------------------------------------------------------------
+-- Dependencies
+--------------------------------------------------------------------------------
+
+local cockpit = require "cockpit.cockpit"
+
+--------------------------------------------------------------------------------
+-- Constants
+--------------------------------------------------------------------------------
+
+local message_acquire_input_focus = hash("acquire_input_focus")
+
+local node_exit_button = hash("node_exit_button")
+
+local color_idle = vmath.vector4(0.7, 0.7, 0.7, 1)
+local color_over = vmath.vector4(1, 1, 1, 1)
+local color_down = vmath.vector4(0.7, 1, 0.7, 1)
+
+--------------------------------------------------------------------------------
+-- Local Functions
+--------------------------------------------------------------------------------
+
+-- Over Callbacks --------------------------------------------------------------
+
+local function over_callback(node, over)
+	if over then
+		gui.set_color(node, color_over)
+	else
+		gui.set_color(node, color_idle)
+	end
+end
+
+local function down_callback(node, down)
+	if down then
+		gui.set_color(node, color_down)
+	else
+		gui.set_color(node, color_over)
+	end
+end
+
+-- Down Callbacks --------------------------------------------------------------
+
+local function exit_callback(node, down)
+	if not down then
+		sys.exit(0)
+	end
+end
+
+--------------------------------------------------------------------------------
+-- Engine Functions
+--------------------------------------------------------------------------------
+
+function init()
+	msg.post(msg.url(), message_acquire_input_focus)
+	cockpit.add_button(node_exit_button, nil, over_callback, exit_callback)
+end
+
+function final()
+	cockpit.remove_instruments()
+end
+
+function on_input(_, action_id, action)
+	cockpit.on_input(action_id, action)
+end
