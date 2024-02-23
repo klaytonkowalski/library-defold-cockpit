@@ -36,40 +36,43 @@ local cockpit = require "cockpit.cockpit"
 
 local message_acquire_input_focus = hash("acquire_input_focus")
 
-local node_exit_button = hash("node_exit_button")
-
 local color_idle = vmath.vector4(0.7, 0.7, 0.7, 1)
 local color_over = vmath.vector4(1, 1, 1, 1)
 local color_down = vmath.vector4(0.7, 1, 0.7, 1)
+
+-- These GUI nodes are set in the `cache_nodes()` function.
+local node_exit_button = nil
+
+--------------------------------------------------------------------------------
+-- Variables
+--------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
 -- Local Functions
 --------------------------------------------------------------------------------
 
--- Over Callbacks --------------------------------------------------------------
-
-local function over_callback(node, over)
-	if over then
+-- Called on any component state change.
+-- If the component is down, then it turns green.
+-- If the component is over, then it turns white.
+-- If the component is idle (not down or over), then it turns gray.
+local function component_callback(node, over, down, data)
+	if over and down then
+		gui.set_color(node, color_down)
+	elseif over then
 		gui.set_color(node, color_over)
 	else
 		gui.set_color(node, color_idle)
 	end
 end
 
-local function down_callback(node, down)
-	if down then
-		gui.set_color(node, color_down)
-	else
-		gui.set_color(node, color_over)
-	end
+-- Caches each of the `node_` constants so that we don't have to repeatedly call `gui.get_node()`.
+local function cache_nodes()
+	node_exit_button = gui.get_node(hash("node_exit_button"))
 end
 
--- Down Callbacks --------------------------------------------------------------
-
-local function exit_callback(node, down)
-	if not down then
-		sys.exit(0)
-	end
+-- Creates every component.
+local function create_components()
+	cockpit.create_button(node_exit_button, component_callback)
 end
 
 --------------------------------------------------------------------------------
@@ -78,11 +81,8 @@ end
 
 function init()
 	msg.post(msg.url(), message_acquire_input_focus)
-	cockpit.add_button(node_exit_button, nil, over_callback, exit_callback)
-end
-
-function final()
-	cockpit.remove_instruments()
+	cache_nodes()
+	create_components()
 end
 
 function on_input(_, action_id, action)

@@ -28,12 +28,7 @@
 -- Constants
 --------------------------------------------------------------------------------
 
-local state_idle = 1
-local state_over = 2
-local state_down = 3
-
 local group_default = hash("group_default")
-local nil_callback = function() end
 
 --------------------------------------------------------------------------------
 -- Variables
@@ -41,33 +36,60 @@ local nil_callback = function() end
 
 local cockpit = {}
 
-local instruments = {}
-local group_stack = { group_default }
-
 local action_x = nil
 local action_y = nil
 local action_dx = nil
 local action_dy = nil
 
+local components = {}
+
+local group_stack = { group_default }
+
 --------------------------------------------------------------------------------
 -- Local Variables
 --------------------------------------------------------------------------------
 
-local function cursor_callback()
-	for _, instrument in pairs(instruments) do
-		-- Only operate on the active group.
-		if instrument.group == group_stack[#group_stack] then
-			-- Check if the cursor is hovering over a node.
-			if gui.pick_node(instrument.node, action_x, action_y) then
-				-- Check if the cursor wasn't hovering over a node, but is now.
-				if instrument.state == state_idle then
-					instrument.state = state_over
-					instrument.over_callback(instrument.node, true)
+local function over_callback()
+	for node, component in pairs(components) do
+		if component.group == group_stack[#group_stack] then
+			if gui.pick_node(node, action_x, action_y) then
+				if not component.over then
+					component.over = true
+					if component.callback then
+						component.callback(node, component.over, component.down, {})
+					end
 				end
-			-- Check if the cursor was hovering over a node, but not anymore.
-			elseif instrument.state == state_over then
-				instrument.state = state_idle
-				instrument.over_callback(instrument.node, false)
+			elseif component.over then
+				component.over = false
+				if component.callback then
+					component.callback(node, component.over, component.down, {})
+				end
+			end
+		end
+	end
+end
+
+local function down_callback()
+	for node, component in pairs(components) do
+		if component.group == group_stack[#group_stack] then
+			if component.over then
+				component.down = true
+				if component.callback then
+					component.callback(node, component.over, component.down, {})
+				end
+			end
+		end
+	end
+end
+
+local function up_callback()
+	for node, component in pairs(components) do
+		if component.group == group_stack[#group_stack] then
+			if component.down then
+				component.down = false
+				if component.over and component.callback then
+					component.callback(node, component.over, component.down, { released = true })
+				end
 			end
 		end
 	end
@@ -77,34 +99,17 @@ end
 -- Module Functions
 --------------------------------------------------------------------------------
 
-function cockpit.add_button(node_id, group, over_callback, down_callback)
-	local button =
+function cockpit.create_button(node, callback, group)
+	components[node] =
 	{
-		node_id = node_id,
-		node = gui.get_node(node_id),
+		node = node,
+		callback = callback,
 		group = group or group_default,
-		over_callback = over_callback or nil_callback,
-		down_callback = down_callback or nil_callback,
-		state = state_idle
+		over = false,
+		down = false
 	}
-	instruments[node_id] = button
-end
-
-function cockpit.remove_instrument(node_id)
-	instruments[node_id] = nil
-end
-
-function cockpit.remove_instrument_group(group)
-	for node_id, instrument in pairs(instruments) do
-		if instrument.group == group then
-			cockpit.remove_instrument(node_id)
-		end
-	end
-end
-
-function cockpit.remove_instruments()
-	for node_id, _ in pairs(instruments) do
-		cockpit.remove_instrument(node_id)
+	if callback then
+		callback(node, components[node].over, components[node].down, {})
 	end
 end
 
@@ -112,7 +117,7 @@ function cockpit.push_group(group)
 	group_stack[#group_stack + 1] = group
 end
 
-function cockpit.pop_group()
+function cockpit.pop_group(group)
 	if #group_stack == 1 then
 		return
 	end
@@ -125,11 +130,15 @@ function cockpit.on_input(action_id, action)
 		action_y = action.y
 		action_dx = action.dx
 		action_dy = action.dy
-		cursor_callback()
+		over_callback(action)
 	elseif action.pressed then
-		
+		if action_id == hash("mouse_button_left") then
+			down_callback()
+		end
 	elseif action.released then
-		
+		if action_id == hash("mouse_button_left") then
+			up_callback()
+		end
 	end
 end
 
