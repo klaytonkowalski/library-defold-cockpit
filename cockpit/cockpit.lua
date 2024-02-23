@@ -28,6 +28,9 @@
 -- Constants
 --------------------------------------------------------------------------------
 
+local type_button = 1
+local type_checkbox = 2
+
 local group_default = hash("group_default")
 
 --------------------------------------------------------------------------------
@@ -49,6 +52,14 @@ local group_stack = { group_default }
 -- Local Variables
 --------------------------------------------------------------------------------
 
+local function update_component_data(component)
+	if component.type == type_button then
+		-- todo: possibly nothing?
+	elseif component.type == type_checkbox then
+		component.checked = not component.checked
+	end
+end
+
 local function over_callback()
 	for node, component in pairs(components) do
 		if component.group == group_stack[#group_stack] then
@@ -56,13 +67,13 @@ local function over_callback()
 				if not component.over then
 					component.over = true
 					if component.callback then
-						component.callback(node, component.over, component.down, {})
+						component.callback(node, component.over, component.down, false)
 					end
 				end
 			elseif component.over then
 				component.over = false
 				if component.callback then
-					component.callback(node, component.over, component.down, {})
+					component.callback(node, component.over, component.down, false)
 				end
 			end
 		end
@@ -75,7 +86,7 @@ local function down_callback()
 			if component.over then
 				component.down = true
 				if component.callback then
-					component.callback(node, component.over, component.down, {})
+					component.callback(node, component.over, component.down, false)
 				end
 			end
 		end
@@ -88,7 +99,8 @@ local function up_callback()
 			if component.down then
 				component.down = false
 				if component.over and component.callback then
-					component.callback(node, component.over, component.down, { released = true })
+					update_component_data(component)
+					component.callback(node, component.over, component.down, true)
 				end
 			end
 		end
@@ -102,6 +114,7 @@ end
 function cockpit.create_button(node, callback, group)
 	components[node] =
 	{
+		type = type_button,
 		node = node,
 		callback = callback,
 		group = group or group_default,
@@ -109,7 +122,23 @@ function cockpit.create_button(node, callback, group)
 		down = false
 	}
 	if callback then
-		callback(node, components[node].over, components[node].down, {})
+		callback(node, components[node].over, components[node].down, false)
+	end
+end
+
+function cockpit.create_checkbox(node, callback, group, checked)
+	components[node] =
+	{
+		type = type_checkbox,
+		node = node,
+		callback = callback,
+		group = group or group_default,
+		over = false,
+		down = false,
+		checked = checked or false
+	}
+	if callback then
+		callback(node, components[node].over, components[node].down, false)
 	end
 end
 
@@ -140,6 +169,13 @@ function cockpit.on_input(action_id, action)
 			up_callback()
 		end
 	end
+end
+
+function cockpit.get_checkbox_data(node)
+	return
+	{
+		checked = components[node].checked
+	}
 end
 
 return cockpit

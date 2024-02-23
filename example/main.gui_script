@@ -42,20 +42,38 @@ local color_down = vmath.vector4(0.7, 1, 0.7, 1)
 
 -- These GUI nodes are set in the `cache_nodes()` function.
 local node_exit_button = nil
-
---------------------------------------------------------------------------------
--- Variables
---------------------------------------------------------------------------------
+local node_bread_checkbox = nil
+local node_eggs_checkbox = nil
+local node_milk_checkbox = nil
+local node_bread_logo = nil
+local node_eggs_logo = nil
+local node_milk_logo = nil
 
 --------------------------------------------------------------------------------
 -- Local Functions
 --------------------------------------------------------------------------------
 
--- Called on any component state change.
--- If the component is down, then it turns green.
--- If the component is over, then it turns white.
--- If the component is idle (not down or over), then it turns gray.
-local function component_callback(node, over, down, data)
+local function exit_button_callback()
+	sys.exit(0)
+end
+
+local function bread_checkbox_callback()
+	local checkbox_data = cockpit.get_checkbox_data(node_bread_checkbox)
+	gui.set_visible(node_bread_logo, checkbox_data.checked)
+end
+
+local function eggs_checkbox_callback()
+	local checkbox_data = cockpit.get_checkbox_data(node_eggs_checkbox)
+	gui.set_visible(node_eggs_logo, checkbox_data.checked)
+end
+
+local function milk_checkbox_callback()
+	local checkbox_data = cockpit.get_checkbox_data(node_milk_checkbox)
+	gui.set_visible(node_milk_logo, checkbox_data.checked)
+end
+
+-- Triggered on any component state change.
+local function component_callback(node, over, down, released)
 	if over and down then
 		gui.set_color(node, color_down)
 	elseif over then
@@ -63,16 +81,36 @@ local function component_callback(node, over, down, data)
 	else
 		gui.set_color(node, color_idle)
 	end
+	if released then
+		if node == node_exit_button then
+			exit_button_callback()
+		elseif node == node_bread_checkbox then
+			bread_checkbox_callback()
+		elseif node == node_eggs_checkbox then
+			eggs_checkbox_callback()
+		elseif node == node_milk_checkbox then
+			milk_checkbox_callback()
+		end
+	end
 end
 
 -- Caches each of the `node_` constants so that we don't have to repeatedly call `gui.get_node()`.
 local function cache_nodes()
 	node_exit_button = gui.get_node(hash("node_exit_button"))
+	node_bread_checkbox = gui.get_node(hash("node_bread_checkbox"))
+	node_eggs_checkbox = gui.get_node(hash("node_eggs_checkbox"))
+	node_milk_checkbox = gui.get_node(hash("node_milk_checkbox"))
+	node_bread_logo = gui.get_node(hash("node_bread_logo"))
+	node_eggs_logo = gui.get_node(hash("node_eggs_logo"))
+	node_milk_logo = gui.get_node(hash("node_milk_logo"))
 end
 
 -- Creates every component.
 local function create_components()
 	cockpit.create_button(node_exit_button, component_callback)
+	cockpit.create_checkbox(node_bread_checkbox, component_callback)
+	cockpit.create_checkbox(node_eggs_checkbox, component_callback)
+	cockpit.create_checkbox(node_milk_checkbox, component_callback)
 end
 
 --------------------------------------------------------------------------------
