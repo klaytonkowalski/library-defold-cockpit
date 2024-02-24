@@ -40,14 +40,23 @@ local color_idle = vmath.vector4(0.7, 0.7, 0.7, 1)
 local color_over = vmath.vector4(1, 1, 1, 1)
 local color_down = vmath.vector4(0.7, 1, 0.7, 1)
 
--- These GUI nodes are set in the `cache_nodes()` function.
+-- The following GUI nodes are set in the `cache_nodes()` function.
+
 local node_exit_button = nil
+
 local node_bread_checkbox = nil
 local node_eggs_checkbox = nil
 local node_milk_checkbox = nil
 local node_bread_logo = nil
 local node_eggs_logo = nil
 local node_milk_logo = nil
+
+local node_red_radio = nil
+local node_green_radio = nil
+local node_blue_radio = nil
+local node_red_logo = nil
+local node_green_logo = nil
+local node_blue_logo = nil
 
 --------------------------------------------------------------------------------
 -- Local Functions
@@ -72,6 +81,21 @@ local function milk_checkbox_callback()
 	gui.set_visible(node_milk_logo, checkbox_data.checked)
 end
 
+local function red_radio_callback()
+	local radio_data = cockpit.get_radio_data(node_red_radio)
+	gui.set_visible(node_red_logo, radio_data.checked)
+end
+
+local function green_radio_callback()
+	local radio_data = cockpit.get_radio_data(node_green_radio)
+	gui.set_visible(node_green_logo, radio_data.checked)
+end
+
+local function blue_radio_callback()
+	local radio_data = cockpit.get_radio_data(node_blue_radio)
+	gui.set_visible(node_blue_logo, radio_data.checked)
+end
+
 -- Triggered on any component state change.
 local function component_callback(node, over, down, released)
 	if over and down then
@@ -90,6 +114,12 @@ local function component_callback(node, over, down, released)
 			eggs_checkbox_callback()
 		elseif node == node_milk_checkbox then
 			milk_checkbox_callback()
+		elseif node == node_red_radio then
+			red_radio_callback()
+		elseif node == node_green_radio then
+			green_radio_callback()
+		elseif node == node_blue_radio then
+			blue_radio_callback()
 		end
 	end
 end
@@ -103,6 +133,12 @@ local function cache_nodes()
 	node_bread_logo = gui.get_node(hash("node_bread_logo"))
 	node_eggs_logo = gui.get_node(hash("node_eggs_logo"))
 	node_milk_logo = gui.get_node(hash("node_milk_logo"))
+	node_red_radio = gui.get_node(hash("node_red_radio"))
+	node_green_radio = gui.get_node(hash("node_green_radio"))
+	node_blue_radio = gui.get_node(hash("node_blue_radio"))
+	node_red_logo = gui.get_node(hash("node_red_logo"))
+	node_green_logo = gui.get_node(hash("node_green_logo"))
+	node_blue_logo = gui.get_node(hash("node_blue_logo"))
 end
 
 -- Creates every component.
@@ -111,6 +147,9 @@ local function create_components()
 	cockpit.create_checkbox(node_bread_checkbox, component_callback)
 	cockpit.create_checkbox(node_eggs_checkbox, component_callback)
 	cockpit.create_checkbox(node_milk_checkbox, component_callback)
+	cockpit.create_radio(node_red_radio, component_callback, 1)
+	cockpit.create_radio(node_green_radio, component_callback, 1)
+	cockpit.create_radio(node_blue_radio, component_callback, 1)
 end
 
 --------------------------------------------------------------------------------

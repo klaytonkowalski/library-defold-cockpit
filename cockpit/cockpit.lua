@@ -30,8 +30,7 @@
 
 local type_button = 1
 local type_checkbox = 2
-
-local group_default = hash("group_default")
+local type_radio = 3
 
 --------------------------------------------------------------------------------
 -- Variables
@@ -46,35 +45,47 @@ local action_dy = nil
 
 local components = {}
 
-local group_stack = { group_default }
-
 --------------------------------------------------------------------------------
 -- Local Variables
 --------------------------------------------------------------------------------
+
+local function uncheck_radio_group(group)
+	for node, component in pairs(components) do
+		if component.type == type_radio and component.group == group and component.checked then
+			component.checked = false
+			if component.callback then
+				component.callback(node, component.over, component.down, true)
+			end
+		end
+	end
+end
 
 local function update_component_data(component)
 	if component.type == type_button then
 		-- todo: possibly nothing?
 	elseif component.type == type_checkbox then
 		component.checked = not component.checked
+	elseif component.type == type_radio then
+		if not component.checked then
+			uncheck_radio_group(component.group)
+		end
+		component.checked = not component.checked
 	end
 end
 
 local function over_callback()
 	for node, component in pairs(components) do
-		if component.group == group_stack[#group_stack] then
-			if gui.pick_node(node, action_x, action_y) then
-				if not component.over then
-					component.over = true
-					if component.callback then
-						component.callback(node, component.over, component.down, false)
-					end
-				end
-			elseif component.over then
-				component.over = false
+		if gui.pick_node(node, action_x, action_y) then
+			if not component.over then
+				component.over = true
 				if component.callback then
 					component.callback(node, component.over, component.down, false)
 				end
+			end
+		elseif component.over then
+			component.over = false
+			if component.callback then
+				component.callback(node, component.over, component.down, false)
 			end
 		end
 	end
@@ -82,12 +93,10 @@ end
 
 local function down_callback()
 	for node, component in pairs(components) do
-		if component.group == group_stack[#group_stack] then
-			if component.over then
-				component.down = true
-				if component.callback then
-					component.callback(node, component.over, component.down, false)
-				end
+		if component.over then
+			component.down = true
+			if component.callback then
+				component.callback(node, component.over, component.down, false)
 			end
 		end
 	end
@@ -95,13 +104,11 @@ end
 
 local function up_callback()
 	for node, component in pairs(components) do
-		if component.group == group_stack[#group_stack] then
-			if component.down then
-				component.down = false
-				if component.over and component.callback then
-					update_component_data(component)
-					component.callback(node, component.over, component.down, true)
-				end
+		if component.down then
+			component.down = false
+			if component.over and component.callback then
+				update_component_data(component)
+				component.callback(node, component.over, component.down, true)
 			end
 		end
 	end
@@ -110,48 +117,6 @@ end
 --------------------------------------------------------------------------------
 -- Module Functions
 --------------------------------------------------------------------------------
-
-function cockpit.create_button(node, callback, group)
-	components[node] =
-	{
-		type = type_button,
-		node = node,
-		callback = callback,
-		group = group or group_default,
-		over = false,
-		down = false
-	}
-	if callback then
-		callback(node, components[node].over, components[node].down, false)
-	end
-end
-
-function cockpit.create_checkbox(node, callback, group, checked)
-	components[node] =
-	{
-		type = type_checkbox,
-		node = node,
-		callback = callback,
-		group = group or group_default,
-		over = false,
-		down = false,
-		checked = checked or false
-	}
-	if callback then
-		callback(node, components[node].over, components[node].down, false)
-	end
-end
-
-function cockpit.push_group(group)
-	group_stack[#group_stack + 1] = group
-end
-
-function cockpit.pop_group(group)
-	if #group_stack == 1 then
-		return
-	end
-	group_stack[#group_stack] = nil
-end
 
 function cockpit.on_input(action_id, action)
 	if not action_id then
@@ -171,7 +136,65 @@ function cockpit.on_input(action_id, action)
 	end
 end
 
+-- Button ----------------------------------------------------------------------
+
+function cockpit.create_button(node, callback)
+	components[node] =
+	{
+		type = type_button,
+		node = node,
+		callback = callback,
+		over = false,
+		down = false
+	}
+	if callback then
+		callback(node, components[node].over, components[node].down, false)
+	end
+end
+
+-- Checkbox --------------------------------------------------------------------
+
+function cockpit.create_checkbox(node, callback, checked)
+	components[node] =
+	{
+		type = type_checkbox,
+		node = node,
+		callback = callback,
+		over = false,
+		down = false,
+		checked = checked or false
+	}
+	if callback then
+		callback(node, components[node].over, components[node].down, false)
+	end
+end
+
 function cockpit.get_checkbox_data(node)
+	return
+	{
+		checked = components[node].checked
+	}
+end
+
+-- Radio -----------------------------------------------------------------------
+
+function cockpit.create_radio(node, callback, group, checked)
+	components[node] =
+	{
+		type = type_radio,
+		node = node,
+		callback = callback,
+		over = false,
+		down = false,
+		group = group,
+		checked = checked or false
+	}
+	if callback then
+		callback(node, components[node].over, components[node].down, false)
+	end
+end
+
+function cockpit.get_radio_data(node)
 	return
 	{
 		checked = components[node].checked
