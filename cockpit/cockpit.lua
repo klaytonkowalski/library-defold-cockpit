@@ -31,6 +31,7 @@
 local type_button = 1
 local type_checkbox = 2
 local type_radio = 3
+local type_slider = 4
 
 --------------------------------------------------------------------------------
 -- Variables
@@ -192,7 +193,7 @@ function cockpit.create_checkbox(node, callback, checked)
 		checked = checked or false
 	}
 	if callback then
-		callback(node, components[node].over, components[node].down, checked)
+		callback(node, components[node].over, components[node].down, true)
 	end
 end
 
@@ -226,7 +227,7 @@ function cockpit.create_radio(node, callback, group, checked)
 		uncheck_radio_group(group)
 	end
 	if callback then
-		callback(node, components[node].over, components[node].down, checked)
+		callback(node, components[node].over, components[node].down, true)
 	end
 end
 
@@ -243,6 +244,36 @@ end
 
 function cockpit.get_radio_checked(node)
 	return components[node].checked
+end
+
+-- Slider ----------------------------------------------------------------------
+
+function cockpit.create_slider(node, callback, min_position, max_position)
+	components[node] =
+	{
+		type = type_slider,
+		enabled = true,
+		node = node,
+		callback = callback,
+		over = false,
+		down = false,
+		min_position = min_position,
+		max_position = max_position
+	}
+	if callback then
+		callback(node, components[node].over, components[node].down, true)
+	end
+end
+
+function cockpit.set_slider_percent(node, percent)
+	return vmath.lerp(percent * 0.01, components[node].min_position, components[node].max_position)
+end
+
+function cockpit.get_slider_percent(node)
+	local position = gui.get_position(node)
+	local slider_length = math.sqrt((components[node].max_position.x - components[node].min_position.x) * (components[node].max_position.x - components[node].min_position.x) + (components[node].max_position.y - components[node].min_position.y) * (components[node].max_position.y - components[node].min_position.y))
+	local slider_length_offset = math.sqrt((position.x - components[node].min_position.x) * (position.x - components[node].min_position.x) + (position.y - components[node].min_position.y) * (position.y - components[node].min_position.y))
+	return slider_length_offset / slider_length
 end
 
 return cockpit

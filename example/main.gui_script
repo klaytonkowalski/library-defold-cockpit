@@ -59,6 +59,9 @@ local node_red_logo = nil
 local node_green_logo = nil
 local node_blue_logo = nil
 
+local node_loading_length = nil
+local node_loading_slider = nil
+
 --------------------------------------------------------------------------------
 -- Local Functions
 --------------------------------------------------------------------------------
@@ -104,6 +107,11 @@ local function blue_radio_callback()
 	gui.set_visible(node_blue_logo, checked)
 end
 
+local function loading_slider_callback()
+	local percent = cockpit.get_slider_percent(node_loading_slider)
+	pprint(percent)
+end
+
 -- Triggered on any component state change.
 local function component_callback(node, over, down, state)
 	if over and down then
@@ -130,6 +138,8 @@ local function component_callback(node, over, down, state)
 			green_radio_callback()
 		elseif node == node_blue_radio then
 			blue_radio_callback()
+		elseif node == node_loading_slider then
+			loading_slider_callback()
 		end
 	end
 end
@@ -150,6 +160,8 @@ local function cache_nodes()
 	node_red_logo = gui.get_node(hash("node_red_logo"))
 	node_green_logo = gui.get_node(hash("node_green_logo"))
 	node_blue_logo = gui.get_node(hash("node_blue_logo"))
+	node_loading_length = gui.get_node(hash("node_loading_length"))
+	node_loading_slider = gui.get_node(hash("node_loading_slider"))
 end
 
 -- Creates every component.
@@ -162,6 +174,9 @@ local function create_components()
 	cockpit.create_radio(node_red_radio, component_callback, 1)
 	cockpit.create_radio(node_green_radio, component_callback, 1)
 	cockpit.create_radio(node_blue_radio, component_callback, 1)
+	local min_position = gui.get_position(node_loading_length)
+	local max_position = min_position + gui.get_size(node_loading_length)
+	cockpit.create_slider(node_loading_slider, component_callback, min_position, max_position)
 end
 
 --------------------------------------------------------------------------------
