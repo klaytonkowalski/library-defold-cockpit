@@ -55,14 +55,22 @@ local input =
 -- Local Variables
 --------------------------------------------------------------------------------
 
+local function clamp(number, min, max)
+	if number < min then
+		return min
+	end
+	if number > max then
+		return max
+	end
+	return number
+end
+
 local function uncheck_radio_group(group)
 	for node, component in pairs(components) do
 		if component.enabled then
 			if component.type == type_radio and component.group == group and component.checked then
 				component.checked = false
-				if component.callback then
-					component.callback(node, component.over, component.down, true)
-				end
+				component.callback(node, component.over, component.down, true)
 			end
 		end
 	end
@@ -80,8 +88,12 @@ local function over_callback()
 				end
 			elseif component.over then
 				component.over = false
-				if component.callback then
-					component.callback(node, component.over, component.down, false)
+				component.callback(node, component.over, component.down, false)
+			end
+			if component.type == type_slider then
+				if component.down then
+					component.percent = clamp(component.percent + (component.vertical and action_dy or action_dx) / component.length * 100, 0, 100)
+					component.callback(node, component.over, component.down, true)
 				end
 			end
 		end
@@ -93,9 +105,7 @@ local function down_callback()
 		if component.enabled then
 			if component.over then
 				component.down = true
-				if component.callback then
-					component.callback(node, component.over, component.down, false)
-				end
+				component.callback(node, component.over, component.down, false)
 			end
 		end
 	end
@@ -174,9 +184,7 @@ function cockpit.create_button(node, callback)
 		over = false,
 		down = false
 	}
-	if callback then
-		callback(node, components[node].over, components[node].down, false)
-	end
+	components[node].callback(node, components[node].over, components[node].down, false)
 end
 
 -- Checkbox --------------------------------------------------------------------
@@ -192,9 +200,7 @@ function cockpit.create_checkbox(node, callback, checked)
 		down = false,
 		checked = checked or false
 	}
-	if callback then
-		callback(node, components[node].over, components[node].down, true)
-	end
+	components[node].callback(node, components[node].over, components[node].down, true)
 end
 
 function cockpit.set_checkbox_checked(node, checked)
@@ -202,7 +208,7 @@ function cockpit.set_checkbox_checked(node, checked)
 		return
 	end
 	components[node].checked = checked
-	components[node].callback(node, component.over, component.down, true)
+	components[node].callback(node, components[node].over, components[node].down, true)
 end
 
 function cockpit.get_checkbox_checked(node)
@@ -226,9 +232,7 @@ function cockpit.create_radio(node, callback, group, checked)
 	if checked then
 		uncheck_radio_group(group)
 	end
-	if callback then
-		callback(node, components[node].over, components[node].down, true)
-	end
+	components[node].callback(node, components[node].over, components[node].down, true)
 end
 
 function cockpit.set_radio_checked(node, checked)
@@ -236,10 +240,10 @@ function cockpit.set_radio_checked(node, checked)
 		return
 	end
 	if checked then
-		uncheck_radio_group(component.group)
+		uncheck_radio_group(components[node].group)
 	end
 	components[node].checked = checked
-	components[node].callback(node, component.over, component.down, true)
+	components[node].callback(node, components[node].over, components[node].down, true)
 end
 
 function cockpit.get_radio_checked(node)
@@ -248,7 +252,7 @@ end
 
 -- Slider ----------------------------------------------------------------------
 
-function cockpit.create_slider(node, callback, min_position, max_position)
+function cockpit.create_slider(node, callback, length, percent, vertical)
 	components[node] =
 	{
 		type = type_slider,
@@ -257,23 +261,20 @@ function cockpit.create_slider(node, callback, min_position, max_position)
 		callback = callback,
 		over = false,
 		down = false,
-		min_position = min_position,
-		max_position = max_position
+		length = length,
+		percent = percent or 100,
+		vertical = vertical or false
 	}
-	if callback then
-		callback(node, components[node].over, components[node].down, true)
-	end
+	components[node].callback(node, components[node].over, components[node].down, true)
 end
 
 function cockpit.set_slider_percent(node, percent)
-	return vmath.lerp(percent * 0.01, components[node].min_position, components[node].max_position)
+	components[node].percent = percent
+	components[node].callback(node, components[node].over, components[node].down, true)
 end
 
 function cockpit.get_slider_percent(node)
-	local position = gui.get_position(node)
-	local slider_length = math.sqrt((components[node].max_position.x - components[node].min_position.x) * (components[node].max_position.x - components[node].min_position.x) + (components[node].max_position.y - components[node].min_position.y) * (components[node].max_position.y - components[node].min_position.y))
-	local slider_length_offset = math.sqrt((position.x - components[node].min_position.x) * (position.x - components[node].min_position.x) + (position.y - components[node].min_position.y) * (position.y - components[node].min_position.y))
-	return slider_length_offset / slider_length
+	return components[node].percent
 end
 
 return cockpit
